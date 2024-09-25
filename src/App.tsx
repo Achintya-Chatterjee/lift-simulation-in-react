@@ -22,8 +22,11 @@ const App: React.FC = () => {
 
         <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           <div>
-            <label className="block text-gray-700 font-medium">Number of Floors (1-100):</label>
+            <label htmlFor="floors" className="block text-gray-700 font-medium">
+              Number of Floors (1-100):
+            </label>
             <input
+              id="floors"
               type="number"
               value={floors || ''}
               onChange={(e) => setFloors(Number(e.target.value))}
@@ -35,8 +38,11 @@ const App: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium">Number of Lifts (1-10):</label>
+            <label htmlFor="lifts" className="block text-gray-700 font-medium">
+              Number of Lifts (1-10):
+            </label>
             <input
+              id="lifts"
               type="number"
               value={lifts || ''}
               onChange={(e) => setLifts(Number(e.target.value))}
