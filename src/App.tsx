@@ -1,18 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+
+type Lift = {
+  id: number;
+  currentFloor: number;
+  isMoving: boolean;
+  direction: "up" | "down" | null;
+  doorsOpen: boolean;
+};
 
 const App: React.FC = () => {
   const [floors, setFloors] = useState<number | null>(null);
-  const [lifts, setLifts] = useState<number | null>(null);
+  const [lifts, setLifts] = useState<Lift[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [requests, setRequests] = useState<number[]>([]); // Stores floor requests
+
+  const initializeLifts = (numLifts: number) => {
+    const initialLifts = Array.from({ length: numLifts }, (_, index) => ({
+      id: index + 1,
+      currentFloor: 1,
+      isMoving: false,
+      direction: null,
+      doorsOpen: false,
+    }));
+    setLifts(initialLifts);
+  };
+
+  const requestLift = (floor: number) => {
+    setRequests((prev) => [...prev, floor]); // Add floor request
+  };
 
   const handleStartSimulation = () => {
-    if (!floors || !lifts || floors < 1 || floors > 100 || lifts < 1 || lifts > 10) {
-      setError('Please enter valid values (Floors: 1-100, Lifts: 1-10)');
+    if (
+      !floors ||
+      floors < 1 ||
+      floors > 100 ||
+      lifts.length < 1 ||
+      lifts.length > 10
+    ) {
+      setError("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
     } else {
       setError(null);
-      // Proceed with simulation logic
-      console.log('Starting simulation...');
+      console.log(
+        "Simulation started with",
+        lifts.length,
+        "lifts and",
+        floors,
+        "floors."
+      );
     }
+  };
+
+  useEffect(() => {
+    if (requests.length > 0) {
+      handleLiftMovement();
+    }
+  }, [requests]);
+
+  const handleLiftMovement = () => {
+    const availableLift = findNearestLift(requests[0]);
+  
+    if (availableLift) {
+      const updatedLifts = lifts.map((lift) => {
+        if (lift.id === availableLift.id) {
+          lift.isMoving = true;
+          lift.direction = lift.currentFloor < requests[0] ? "up" : "down";
+  
+          // Simulate lift movement delay
+          setTimeout(() => {
+            const newLifts = [...lifts]; // Create a new copy of the lifts array for immutability
+            const targetLift = newLifts.find((l) => l.id === lift.id);
+            if (targetLift) {
+              targetLift.currentFloor = requests[0];
+              targetLift.isMoving = false;
+              targetLift.doorsOpen = true;
+              setLifts(newLifts); // Trigger re-render with updated state
+  
+              setTimeout(() => {
+                const closedLifts = [...lifts];
+                const liftToClose = closedLifts.find((l) => l.id === lift.id);
+                if (liftToClose) {
+                  liftToClose.doorsOpen = false;
+                  setLifts(closedLifts); // Trigger re-render with doors closed
+                  setRequests((prev) => prev.slice(1)); // Remove the handled request
+                }
+              }, 2500); // Door open/close delay
+            }
+          }, Math.abs(lift.currentFloor - requests[0]) * 2000); // Move 2s per floor
+        }
+        return lift;
+      });
+  
+      setLifts(updatedLifts); // Trigger a re-render after assigning the moving lift
+    }
+  };
+  
+  const findNearestLift = (requestedFloor: number): Lift | null => {
+    let nearestLift: Lift | null = null;
+    let minDistance = Infinity;
+
+    lifts.forEach((lift) => {
+      if (!lift.isMoving) {
+        const distance = Math.abs(lift.currentFloor - requestedFloor);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestLift = lift;
+        }
+      }
+    });
+
+    return nearestLift;
   };
 
   return (
@@ -22,13 +118,16 @@ const App: React.FC = () => {
 
         <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           <div>
-            <label htmlFor="floors" className="block text-gray-700 font-medium">
+            <label
+              htmlFor="floors-input"
+              className="block text-gray-700 font-medium"
+            >
               Number of Floors (1-100):
             </label>
             <input
-              id="floors"
+              id="floors-input"
               type="number"
-              value={floors || ''}
+              value={floors || ""}
               onChange={(e) => setFloors(Number(e.target.value))}
               min="1"
               max="100"
@@ -38,14 +137,16 @@ const App: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="lifts" className="block text-gray-700 font-medium">
+            <label
+              htmlFor="lifts-input"
+              className="block text-gray-700 font-medium"
+            >
               Number of Lifts (1-10):
             </label>
             <input
-              id="lifts"
+              id="lifts-input"
               type="number"
-              value={lifts || ''}
-              onChange={(e) => setLifts(Number(e.target.value))}
+              onChange={(e) => initializeLifts(Number(e.target.value))}
               min="1"
               max="10"
               required
@@ -62,6 +163,43 @@ const App: React.FC = () => {
             Start Simulation
           </button>
         </form>
+
+        {/* Request Lift Buttons */}
+        <div className="mt-6">
+          {Array.from({ length: floors || 0 }, (_, index) => (
+            <button
+              key={index}
+              className="m-2 p-2 bg-blue-500 text-white rounded"
+              onClick={() => requestLift(index + 1)}
+            >
+              Request Lift at Floor {index + 1}
+            </button>
+          ))}
+        </div>
+
+        {/* Lift Status Display */}
+        <div className="mt-6">
+          {lifts.map((lift) => (
+            <div
+              key={lift.id}
+              className="mb-2 p-2 border border-gray-400"
+              data-testid={`lift-${lift.id}`}
+            >
+              <p data-testid={`lift-${lift.id}-floor`}>
+                Lift {lift.id} - Current Floor: {lift.currentFloor}
+              </p>
+              <p data-testid={`lift-${lift.id}-status`}>
+                Status: {lift.isMoving ? "Moving" : "Idle"}
+              </p>
+              <p data-testid={`lift-${lift.id}-direction`}>
+                Direction: {lift.direction || "None"}
+              </p>
+              <p data-testid={`lift-${lift.id}-doors`}>
+                Doors: {lift.doorsOpen ? "Open" : "Closed"}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
