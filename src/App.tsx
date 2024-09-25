@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 type Lift = {
   id: number;
   currentFloor: number;
   isMoving: boolean;
-  direction: 'up' | 'down' | null;
+  direction: "up" | "down" | null;
   doorsOpen: boolean;
 };
 
@@ -30,11 +30,23 @@ const App: React.FC = () => {
   };
 
   const handleStartSimulation = () => {
-    if (!floors || floors < 1 || floors > 100 || lifts.length < 1 || lifts.length > 10) {
-      setError('Please enter valid values (Floors: 1-100, Lifts: 1-10)');
+    if (
+      !floors ||
+      floors < 1 ||
+      floors > 100 ||
+      lifts.length < 1 ||
+      lifts.length > 10
+    ) {
+      setError("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
     } else {
       setError(null);
-      console.log('Simulation started with', lifts.length, 'lifts and', floors, 'floors.');
+      console.log(
+        "Simulation started with",
+        lifts.length,
+        "lifts and",
+        floors,
+        "floors."
+      );
     }
   };
 
@@ -46,31 +58,42 @@ const App: React.FC = () => {
 
   const handleLiftMovement = () => {
     const availableLift = findNearestLift(requests[0]);
-
+  
     if (availableLift) {
       const updatedLifts = lifts.map((lift) => {
         if (lift.id === availableLift.id) {
           lift.isMoving = true;
-          lift.direction = lift.currentFloor < requests[0] ? 'up' : 'down';
-
+          lift.direction = lift.currentFloor < requests[0] ? "up" : "down";
+  
           // Simulate lift movement delay
           setTimeout(() => {
-            lift.currentFloor = requests[0];
-            lift.isMoving = false;
-            lift.doorsOpen = true;
-            setTimeout(() => {
-              lift.doorsOpen = false;
-              setRequests((prev) => prev.slice(1)); // Remove the handled request
-            }, 2500); // Door open/close delay
+            const newLifts = [...lifts]; // Create a new copy of the lifts array for immutability
+            const targetLift = newLifts.find((l) => l.id === lift.id);
+            if (targetLift) {
+              targetLift.currentFloor = requests[0];
+              targetLift.isMoving = false;
+              targetLift.doorsOpen = true;
+              setLifts(newLifts); // Trigger re-render with updated state
+  
+              setTimeout(() => {
+                const closedLifts = [...lifts];
+                const liftToClose = closedLifts.find((l) => l.id === lift.id);
+                if (liftToClose) {
+                  liftToClose.doorsOpen = false;
+                  setLifts(closedLifts); // Trigger re-render with doors closed
+                  setRequests((prev) => prev.slice(1)); // Remove the handled request
+                }
+              }, 2500); // Door open/close delay
+            }
           }, Math.abs(lift.currentFloor - requests[0]) * 2000); // Move 2s per floor
         }
         return lift;
       });
-
-      setLifts(updatedLifts);
+  
+      setLifts(updatedLifts); // Trigger a re-render after assigning the moving lift
     }
   };
-
+  
   const findNearestLift = (requestedFloor: number): Lift | null => {
     let nearestLift: Lift | null = null;
     let minDistance = Infinity;
@@ -95,10 +118,16 @@ const App: React.FC = () => {
 
         <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
           <div>
-            <label className="block text-gray-700 font-medium">Number of Floors (1-100):</label>
+            <label
+              htmlFor="floors-input"
+              className="block text-gray-700 font-medium"
+            >
+              Number of Floors (1-100):
+            </label>
             <input
+              id="floors-input"
               type="number"
-              value={floors || ''}
+              value={floors || ""}
               onChange={(e) => setFloors(Number(e.target.value))}
               min="1"
               max="100"
@@ -108,8 +137,14 @@ const App: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-medium">Number of Lifts (1-10):</label>
+            <label
+              htmlFor="lifts-input"
+              className="block text-gray-700 font-medium"
+            >
+              Number of Lifts (1-10):
+            </label>
             <input
+              id="lifts-input"
               type="number"
               onChange={(e) => initializeLifts(Number(e.target.value))}
               min="1"
@@ -145,11 +180,23 @@ const App: React.FC = () => {
         {/* Lift Status Display */}
         <div className="mt-6">
           {lifts.map((lift) => (
-            <div key={lift.id} className="mb-2 p-2 border border-gray-400">
-              <p>Lift {lift.id} - Current Floor: {lift.currentFloor}</p>
-              <p>Status: {lift.isMoving ? 'Moving' : 'Idle'}</p>
-              <p>Direction: {lift.direction || 'None'}</p>
-              <p>Doors: {lift.doorsOpen ? 'Open' : 'Closed'}</p>
+            <div
+              key={lift.id}
+              className="mb-2 p-2 border border-gray-400"
+              data-testid={`lift-${lift.id}`}
+            >
+              <p data-testid={`lift-${lift.id}-floor`}>
+                Lift {lift.id} - Current Floor: {lift.currentFloor}
+              </p>
+              <p data-testid={`lift-${lift.id}-status`}>
+                Status: {lift.isMoving ? "Moving" : "Idle"}
+              </p>
+              <p data-testid={`lift-${lift.id}-direction`}>
+                Direction: {lift.direction || "None"}
+              </p>
+              <p data-testid={`lift-${lift.id}-doors`}>
+                Doors: {lift.doorsOpen ? "Open" : "Closed"}
+              </p>
             </div>
           ))}
         </div>
@@ -157,6 +204,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
 
 export default App;
