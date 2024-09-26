@@ -1,206 +1,233 @@
 import React, { useState, useEffect } from "react";
+import Floor from "./components/Floor";
+import Lift from "./components/Lift";
 
-type Lift = {
+type LiftType = {
   id: number;
   currentFloor: number;
   isMoving: boolean;
-  direction: "up" | "down" | null;
   doorsOpen: boolean;
+  style: React.CSSProperties;
 };
 
 const App: React.FC = () => {
-  const [floors, setFloors] = useState<number | null>(null);
-  const [lifts, setLifts] = useState<Lift[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [requests, setRequests] = useState<number[]>([]); // Stores floor requests
+  const [floorsCount, setFloorsCount] = useState<number>(0);
+  const [liftsCount, setLiftsCount] = useState<number>(0);
+  const [isSimulationStarted, setIsSimulationStarted] =
+    useState<boolean>(false);
+  const [lifts, setLifts] = useState<LiftType[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<number[]>([]);
+  const floorHeight = 120; // Adjusting height for better visibility
 
-  const initializeLifts = (numLifts: number) => {
-    const initialLifts = Array.from({ length: numLifts }, (_, index) => ({
-      id: index + 1,
-      currentFloor: 1,
-      isMoving: false,
-      direction: null,
-      doorsOpen: false,
-    }));
+  useEffect(() => {
+    if (isSimulationStarted) {
+      initializeLifts(liftsCount);
+    }
+  }, [isSimulationStarted]);
+
+  const initializeLifts = (count: number) => {
+    const initialLifts: LiftType[] = [];
+    for (let i = 0; i < count; i++) {
+      initialLifts.push({
+        id: i + 1,
+        currentFloor: 0, // Ensure all lifts start at the ground floor
+        isMoving: false,
+        doorsOpen: false,
+        style: { bottom: "0px" }, // Lift starts at the bottom
+      });
+    }
     setLifts(initialLifts);
   };
 
-  const requestLift = (floor: number) => {
-    setRequests((prev) => [...prev, floor]); // Add floor request
-  };
-
-  const handleStartSimulation = () => {
+  const handleStartSimulation = (e: React.FormEvent) => {
+    e.preventDefault();
     if (
-      !floors ||
-      floors < 1 ||
-      floors > 100 ||
-      lifts.length < 1 ||
-      lifts.length > 10
+      floorsCount <= 0 ||
+      floorsCount > 100 ||
+      liftsCount <= 0 ||
+      liftsCount > 10
     ) {
-      setError("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
-    } else {
-      setError(null);
-      console.log(
-        "Simulation started with",
-        lifts.length,
-        "lifts and",
-        floors,
-        "floors."
-      );
+      alert("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
+      return;
     }
+    setIsSimulationStarted(true);
   };
 
-  useEffect(() => {
-    if (requests.length > 0) {
-      handleLiftMovement();
-    }
-  }, [requests]);
+  const handleResetSimulation = () => {
+    setIsSimulationStarted(false);
+    setLifts([]);
+    setPendingRequests([]);
+    setFloorsCount(0);
+    setLiftsCount(0);
+  };
 
-  const handleLiftMovement = () => {
-    const availableLift = findNearestLift(requests[0]);
-  
+  const handleLiftRequest = (floorNumber: number) => {
+    const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
-      const updatedLifts = lifts.map((lift) => {
-        if (lift.id === availableLift.id) {
-          lift.isMoving = true;
-          lift.direction = lift.currentFloor < requests[0] ? "up" : "down";
-  
-          // Simulate lift movement delay
-          setTimeout(() => {
-            const newLifts = [...lifts]; // Create a new copy of the lifts array for immutability
-            const targetLift = newLifts.find((l) => l.id === lift.id);
-            if (targetLift) {
-              targetLift.currentFloor = requests[0];
-              targetLift.isMoving = false;
-              targetLift.doorsOpen = true;
-              setLifts(newLifts); // Trigger re-render with updated state
-  
-              setTimeout(() => {
-                const closedLifts = [...lifts];
-                const liftToClose = closedLifts.find((l) => l.id === lift.id);
-                if (liftToClose) {
-                  liftToClose.doorsOpen = false;
-                  setLifts(closedLifts); // Trigger re-render with doors closed
-                  setRequests((prev) => prev.slice(1)); // Remove the handled request
-                }
-              }, 2500); // Door open/close delay
-            }
-          }, Math.abs(lift.currentFloor - requests[0]) * 2000); // Move 2s per floor
-        }
-        return lift;
-      });
-  
-      setLifts(updatedLifts); // Trigger a re-render after assigning the moving lift
+      moveLift(availableLift, floorNumber);
+    } else {
+      setPendingRequests((prev) => [...prev, floorNumber]);
     }
   };
-  
-  const findNearestLift = (requestedFloor: number): Lift | null => {
-    let nearestLift: Lift | null = null;
-    let minDistance = Infinity;
 
-    lifts.forEach((lift) => {
+  const findNearestAvailableLift = (floorNumber: number): LiftType | null => {
+    let nearestLift: LiftType | null = null;
+    let minDistance = Infinity;
+    for (const lift of lifts) {
       if (!lift.isMoving) {
-        const distance = Math.abs(lift.currentFloor - requestedFloor);
+        const distance = Math.abs(lift.currentFloor - floorNumber);
         if (distance < minDistance) {
           minDistance = distance;
           nearestLift = lift;
         }
       }
-    });
-
+    }
     return nearestLift;
   };
 
-  return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-4">Lift Simulation</h1>
+  const moveLift = (lift: LiftType, destinationFloor: number) => {
+    const floorsToMove = Math.abs(lift.currentFloor - destinationFloor);
+    const timePerFloor = 2000; // 2 seconds per floor
+    const totalTime = floorsToMove * timePerFloor;
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-          <div>
-            <label
-              htmlFor="floors-input"
-              className="block text-gray-700 font-medium"
-            >
+    const destinationBottom = `${destinationFloor * floorHeight}px`; // Calculate the new `bottom` position
+
+    setLifts((prevLifts) =>
+      prevLifts.map((l) =>
+        l.id === lift.id
+          ? {
+              ...l,
+              isMoving: true,
+              style: {
+                ...l.style,
+                transition: `bottom ${totalTime}ms linear`,
+                bottom: destinationBottom, // Update the bottom property instead of using `translateY`
+              },
+            }
+          : l
+      )
+    );
+
+    // After the lift reaches the destination, update the state
+    setTimeout(() => {
+      setLifts((prevLifts) =>
+        prevLifts.map((l) =>
+          l.id === lift.id
+            ? {
+                ...l,
+                isMoving: false,
+                doorsOpen: true,
+                currentFloor: destinationFloor,
+              }
+            : l
+        )
+      );
+
+      // Close the doors after 2.5 seconds
+      setTimeout(() => {
+        setLifts((prevLifts) =>
+          prevLifts.map((l) =>
+            l.id === lift.id ? { ...l, doorsOpen: false } : l
+          )
+        );
+
+        // Handle pending requests if any
+        if (pendingRequests.length > 0) {
+          const nextFloor = pendingRequests.shift()!;
+          moveLift(lift, nextFloor);
+        }
+      }, 2500); // Doors open for 2.5 seconds
+    }, totalTime);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center bg-gray-100">
+      <header className="py-6">
+        <h1 className="text-3xl font-bold">Lift Simulation by Achintya</h1>
+        <button
+          className="bg-red-600 text-white py-2 px-4 rounded mt-4"
+          onClick={handleResetSimulation}
+          style={{ display: isSimulationStarted ? "block" : "none" }} // Show reset button only after starting simulation
+        >
+          Reset Simulation
+        </button>
+      </header>
+      {!isSimulationStarted ? (
+        <form
+          onSubmit={handleStartSimulation}
+          className="bg-white p-6 rounded shadow-md max-w-md"
+        >
+          <div className="mb-4">
+            <label htmlFor="floorsCount" className="block text-lg">
               Number of Floors (1-100):
             </label>
             <input
-              id="floors-input"
               type="number"
-              value={floors || ""}
-              onChange={(e) => setFloors(Number(e.target.value))}
+              id="floorsCount"
+              value={floorsCount}
+              onChange={(e) => setFloorsCount(Number(e.target.value))}
               min="1"
               max="100"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+              className="w-full px-4 py-2 border rounded mt-2"
             />
           </div>
-
-          <div>
-            <label
-              htmlFor="lifts-input"
-              className="block text-gray-700 font-medium"
-            >
+          <div className="mb-4">
+            <label htmlFor="liftsCount" className="block text-lg">
               Number of Lifts (1-10):
             </label>
             <input
-              id="lifts-input"
               type="number"
-              onChange={(e) => initializeLifts(Number(e.target.value))}
+              id="liftsCount"
+              value={liftsCount}
+              onChange={(e) => setLiftsCount(Number(e.target.value))}
               min="1"
               max="10"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+              className="w-full px-4 py-2 border rounded mt-2"
             />
           </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-
           <button
-            onClick={handleStartSimulation}
-            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-300"
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-2 rounded mt-4"
           >
             Start Simulation
           </button>
         </form>
-
-        {/* Request Lift Buttons */}
-        <div className="mt-6">
-          {Array.from({ length: floors || 0 }, (_, index) => (
-            <button
-              key={index}
-              className="m-2 p-2 bg-blue-500 text-white rounded"
-              onClick={() => requestLift(index + 1)}
-            >
-              Request Lift at Floor {index + 1}
-            </button>
-          ))}
-        </div>
-
-        {/* Lift Status Display */}
-        <div className="mt-6">
-          {lifts.map((lift) => (
-            <div
-              key={lift.id}
-              className="mb-2 p-2 border border-gray-400"
-              data-testid={`lift-${lift.id}`}
-            >
-              <p data-testid={`lift-${lift.id}-floor`}>
-                Lift {lift.id} - Current Floor: {lift.currentFloor}
-              </p>
-              <p data-testid={`lift-${lift.id}-status`}>
-                Status: {lift.isMoving ? "Moving" : "Idle"}
-              </p>
-              <p data-testid={`lift-${lift.id}-direction`}>
-                Direction: {lift.direction || "None"}
-              </p>
-              <p data-testid={`lift-${lift.id}-doors`}>
-                Doors: {lift.doorsOpen ? "Open" : "Closed"}
-              </p>
+      ) : (
+        <div className="relative w-full max-w-screen-lg h-[80vh] flex flex-col mx-auto overflow-hidden">
+          <div className="relative flex-1 grid grid-cols-[1fr_5fr] gap-4 overflow-auto">
+            {/* Floors */}
+            <div className="relative grid grid-rows-[repeat(${floorsCount},_120px)]">
+              {Array.from({ length: floorsCount + 1 }, (_, index) => (
+                <Floor
+                  key={index}
+                  floorNumber={floorsCount - index}
+                  floorHeight={floorHeight}
+                  handleLiftRequest={handleLiftRequest}
+                  isTopFloor={floorsCount - index === floorsCount}
+                  isGroundFloor={floorsCount - index === 0}
+                />
+              ))}
             </div>
-          ))}
+
+            {/* Lifts */}
+            <div className="relative flex justify-around items-start">
+              {lifts.map((lift, idx) => (
+                <Lift
+                  key={lift.id}
+                  id={lift.id}
+                  liftStyle={{
+                    ...lift.style,
+                    left: `${idx * 100}px`, // Space lifts horizontally by 100px for each lift
+                  }}
+                  doorsOpen={lift.doorsOpen}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
