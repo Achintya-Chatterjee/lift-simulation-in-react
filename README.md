@@ -84,9 +84,9 @@ To run the tests, follow these steps:
    yarn test
    ```
 ### Technologies Used
-- React: A JavaScript library for building user interfaces.
-- TypeScript: A typed superset of JavaScript.
-- Vite: Next-generation frontend tooling for fast builds and HMR.
-- Tailwind CSS: A utility-first CSS framework.
-- Jest: JavaScript testing framework.
-- React Testing Library: For testing React components.
+- **React**: A JavaScript library for building user interfaces.
+- **TypeScript**: A typed superset of JavaScript.
+- **Vite**: Next-generation frontend tooling for fast builds and HMR.
+- **Tailwind CSS**: A utility-first CSS framework.
+- **Jest**: JavaScript testing framework.
+- **React Testing Library**: For testing React components.
