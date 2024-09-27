@@ -36,7 +36,7 @@ const App: React.FC = () => {
     if (isSimulationStarted) {
       initializeLifts(liftsCount);
     }
-  }, [isSimulationStarted]);
+  }, [isSimulationStarted, liftsCount]);
 
   const initializeLifts = (count: number) => {
     const initialLifts: LiftType[] = [];
