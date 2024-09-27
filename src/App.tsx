@@ -17,7 +17,20 @@ const App: React.FC = () => {
     useState<boolean>(false);
   const [lifts, setLifts] = useState<LiftType[]>([]);
   const [pendingRequests, setPendingRequests] = useState<number[]>([]);
+  const [disabledButtons, setDisabledButtons] = useState<
+    Record<number, { up: boolean; down: boolean }>
+  >({});
   const floorHeight = 120; // Adjusting height for better visibility
+
+  // Initialize disabled buttons state for each floor
+  useEffect(() => {
+    const initialDisabledState: Record<number, { up: boolean; down: boolean }> =
+      {};
+    for (let i = 0; i <= floorsCount; i++) {
+      initialDisabledState[i] = { up: false, down: false };
+    }
+    setDisabledButtons(initialDisabledState);
+  }, [floorsCount]);
 
   useEffect(() => {
     if (isSimulationStarted) {
@@ -30,10 +43,10 @@ const App: React.FC = () => {
     for (let i = 0; i < count; i++) {
       initialLifts.push({
         id: i + 1,
-        currentFloor: 0, // Ensure all lifts start at the ground floor
+        currentFloor: 0, // Set lifts to start at the ground floor
         isMoving: false,
         doorsOpen: false,
-        style: { bottom: "0px" }, // Lift starts at the bottom
+        style: { bottom: "0px" }, // Ensure bottom is explicitly set to 0
       });
     }
     setLifts(initialLifts);
@@ -61,10 +74,19 @@ const App: React.FC = () => {
     setLiftsCount(0);
   };
 
-  const handleLiftRequest = (floorNumber: number) => {
+  const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
     const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
       moveLift(availableLift, floorNumber);
+
+      // Disable the button that was pressed
+      setDisabledButtons((prev) => ({
+        ...prev,
+        [floorNumber]: {
+          ...prev[floorNumber],
+          [direction]: true,
+        },
+      }));
     } else {
       setPendingRequests((prev) => [...prev, floorNumber]);
     }
@@ -74,7 +96,8 @@ const App: React.FC = () => {
     let nearestLift: LiftType | null = null;
     let minDistance = Infinity;
     for (const lift of lifts) {
-      if (!lift.isMoving) {
+      if (!lift.isMoving && !lift.doorsOpen) {
+        // Ensure the lift is not moving and doors are closed
         const distance = Math.abs(lift.currentFloor - floorNumber);
         if (distance < minDistance) {
           minDistance = distance;
@@ -89,9 +112,9 @@ const App: React.FC = () => {
     const floorsToMove = Math.abs(lift.currentFloor - destinationFloor);
     const timePerFloor = 2000; // 2 seconds per floor
     const totalTime = floorsToMove * timePerFloor;
-
     const destinationBottom = `${destinationFloor * floorHeight}px`; // Calculate the new `bottom` position
-
+  
+    // Move the lift to the destination
     setLifts((prevLifts) =>
       prevLifts.map((l) =>
         l.id === lift.id
@@ -100,15 +123,15 @@ const App: React.FC = () => {
               isMoving: true,
               style: {
                 ...l.style,
+                bottom: destinationBottom, // Use the new bottom position
                 transition: `bottom ${totalTime}ms linear`,
-                bottom: destinationBottom, // Update the bottom property instead of using `translateY`
               },
             }
           : l
       )
     );
-
-    // After the lift reaches the destination, update the state
+  
+    // After the lift reaches the destination, open the doors
     setTimeout(() => {
       setLifts((prevLifts) =>
         prevLifts.map((l) =>
@@ -122,7 +145,7 @@ const App: React.FC = () => {
             : l
         )
       );
-
+  
       // Close the doors after 2.5 seconds
       setTimeout(() => {
         setLifts((prevLifts) =>
@@ -130,16 +153,22 @@ const App: React.FC = () => {
             l.id === lift.id ? { ...l, doorsOpen: false } : l
           )
         );
-
+  
+        // Re-enable the buttons after the lift reaches the floor
+        setDisabledButtons((prev) => ({
+          ...prev,
+          [destinationFloor]: { up: false, down: false },
+        }));
+  
         // Handle pending requests if any
         if (pendingRequests.length > 0) {
           const nextFloor = pendingRequests.shift()!;
           moveLift(lift, nextFloor);
         }
       }, 2500); // Doors open for 2.5 seconds
-    }, totalTime);
+    }, totalTime); // Wait until the lift reaches its destination before opening doors
   };
-
+  
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <header className="py-6">
@@ -195,10 +224,10 @@ const App: React.FC = () => {
           </button>
         </form>
       ) : (
-        <div className="relative w-full max-w-screen-lg h-[80vh] flex flex-col mx-auto overflow-hidden">
-          <div className="relative flex-1 grid grid-cols-[1fr_5fr] gap-4 overflow-auto">
+        <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto">
+          <div className="relative flex-1 grid grid-cols-[1fr_5fr] gap-4">
             {/* Floors */}
-            <div className="relative grid grid-rows-[repeat(${floorsCount},_120px)]">
+            <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)]">
               {Array.from({ length: floorsCount + 1 }, (_, index) => (
                 <Floor
                   key={index}
@@ -207,23 +236,26 @@ const App: React.FC = () => {
                   handleLiftRequest={handleLiftRequest}
                   isTopFloor={floorsCount - index === floorsCount}
                   isGroundFloor={floorsCount - index === 0}
+                  disabledUp={disabledButtons[floorsCount - index]?.up || false}
+                  disabledDown={
+                    disabledButtons[floorsCount - index]?.down || false
+                  }
                 />
               ))}
             </div>
 
             {/* Lifts */}
-            <div className="relative flex justify-around items-start">
-              {lifts.map((lift, idx) => (
-                <Lift
-                  key={lift.id}
-                  id={lift.id}
-                  liftStyle={{
-                    ...lift.style,
-                    left: `${idx * 100}px`, // Space lifts horizontally by 100px for each lift
-                  }}
-                  doorsOpen={lift.doorsOpen}
-                />
-              ))}
+            <div className="relative w-full max-w-screen-lg h-full mx-auto">
+              <div className="relative flex justify-around items-end h-full">
+                {lifts.map((lift) => (
+                  <Lift
+                    key={lift.id}
+                    id={lift.id}
+                    liftStyle={lift.style}
+                    doorsOpen={lift.doorsOpen}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
