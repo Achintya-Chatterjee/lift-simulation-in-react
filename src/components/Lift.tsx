@@ -4,7 +4,7 @@ type LiftProps = {
   id: number;
   liftStyle: React.CSSProperties;
   doorsOpen: boolean;
-  currentFloor: number; 
+  currentFloor: number;
 };
 
 const Lift: React.FC<LiftProps> = ({
@@ -13,6 +13,10 @@ const Lift: React.FC<LiftProps> = ({
   doorsOpen,
   currentFloor,
 }) => {
+  console.log(
+    `Rendering Lift ${id}: Current Floor: ${currentFloor}, Doors Open: ${doorsOpen}`
+  );
+
   return (
     <div className="relative w-16 h-24 bg-gray-800" style={liftStyle}>
       <div className="relative w-full h-full">
