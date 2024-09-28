@@ -252,8 +252,7 @@ const App: React.FC = () => {
                     key={lift.id}
                     id={lift.id}
                     liftStyle={lift.style}
-                    doorsOpen={lift.doorsOpen}
-                  />
+                    doorsOpen={lift.doorsOpen} currentFloor={0}                  />
                 ))}
               </div>
             </div>

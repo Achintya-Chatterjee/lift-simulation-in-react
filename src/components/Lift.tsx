@@ -4,9 +4,15 @@ type LiftProps = {
   id: number;
   liftStyle: React.CSSProperties;
   doorsOpen: boolean;
+  currentFloor: number; 
 };
 
-const Lift: React.FC<LiftProps> = ({ id, liftStyle, doorsOpen }) => {
+const Lift: React.FC<LiftProps> = ({
+  id,
+  liftStyle,
+  doorsOpen,
+  currentFloor,
+}) => {
   return (
     <div className="relative w-16 h-24 bg-gray-800" style={liftStyle}>
       <div className="relative w-full h-full">
@@ -36,10 +42,10 @@ const Lift: React.FC<LiftProps> = ({ id, liftStyle, doorsOpen }) => {
             border: 0,
           }}
         >
-          Lift {id} - Current Floor:
+          Lift {id} - Current Floor: {currentFloor} {/* Show current floor */}
         </p>
         <p
-          data-testid={`doors-${doorsOpen ? 'open' : 'closed'}`}
+          data-testid={`doors-${doorsOpen ? "open" : "closed"}`}
           style={{
             position: "absolute",
             width: "1px",
@@ -51,7 +57,7 @@ const Lift: React.FC<LiftProps> = ({ id, liftStyle, doorsOpen }) => {
             border: 0,
           }}
         >
-          Doors: {doorsOpen ? 'Open' : 'Closed'}
+          Doors: {doorsOpen ? "Open" : "Closed"}
         </p>
       </div>
     </div>
