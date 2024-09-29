@@ -218,12 +218,15 @@ const App: React.FC = () => {
           className="bg-white p-6 rounded shadow-md max-w-md"
         >
           <div className="mb-4">
-            {errorMessage && (
-              <div className="text-red-600 border border-red-600 p-2 rounded mb-4">
-                {errorMessage}
-              </div>
-            )}{" "}
-            {/* Render error message */}
+            <div
+              className={`text-red-600 border border-red-600 p-2 rounded mb-4 ${
+                errorMessage ? "" : "hidden"
+              }`}
+              role="alert" // Add role for accessibility
+              aria-live="assertive" // Add aria-live for dynamic updates
+            >
+              {errorMessage}
+            </div>
             <label htmlFor="floorsCount" className="block text-lg">
               Number of Floors (1-100):
             </label>

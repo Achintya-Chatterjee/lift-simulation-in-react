@@ -180,14 +180,20 @@ describe("Lift Simulation App", () => {
     expect(screen.getByTestId("lift-1")).toHaveTextContent("Current Floor: 9");
     expect(screen.getByTestId("doors-open")).toBeInTheDocument(); // Check if doors are open
   });
-  it('should not show an error for valid input values', () => {
+  it("should not show an error for valid input values", () => {
     render(<App />);
 
-    fireEvent.change(screen.getByLabelText(/Number of Floors/i), { target: { value: '10' } });
-    fireEvent.change(screen.getByLabelText(/Number of Lifts/i), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText(/Number of Floors/i), {
+      target: { value: "10" },
+    });
+    fireEvent.change(screen.getByLabelText(/Number of Lifts/i), {
+      target: { value: "5" },
+    });
   });
-  it('should show an error if lift is requested before simulation starts', () => {
+  it("should show an error if lift is requested before simulation starts", () => {
     render(<App />);
-    expect(screen.queryByText(/Request Lift at Floor 5/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Request Lift at Floor 5/i)
+    ).not.toBeInTheDocument();
   });
 });

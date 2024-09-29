@@ -1,7 +1,7 @@
-import "@testing-library/jest-dom"; 
+import "@testing-library/jest-dom";
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import Floor from "../components/Floor"; 
+import Floor from "../components/Floor";
 
 describe("Floor Component", () => {
   const handleLiftRequest = jest.fn();
