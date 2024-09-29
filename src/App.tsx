@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [disabledButtons, setDisabledButtons] = useState<
     Record<number, { up: boolean; down: boolean }>
   >({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // State for error message
   const floorHeight = 120; // Adjusting height for better visibility
 
   // Initialize disabled buttons state for each floor
@@ -30,6 +31,7 @@ const App: React.FC = () => {
       initialDisabledState[i] = { up: false, down: false };
     }
     setDisabledButtons(initialDisabledState);
+    console.log("Initialized disabled buttons state:", initialDisabledState);
   }, [floorsCount]);
 
   useEffect(() => {
@@ -50,34 +52,48 @@ const App: React.FC = () => {
       });
     }
     setLifts(initialLifts);
+    console.log("Initialized lifts:", initialLifts);
   };
 
   const handleStartSimulation = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Starting simulation with:", { floorsCount, liftsCount });
+
     if (
       floorsCount <= 0 ||
       floorsCount > 100 ||
       liftsCount <= 0 ||
       liftsCount > 10
     ) {
-      alert("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
+      setErrorMessage("Please enter valid values (Floors: 1-100, Lifts: 1-10)"); // Set error message
       return;
     }
+
+    setErrorMessage(null); // Clear any previous error messages
     setIsSimulationStarted(true);
+    console.log("Simulation started.");
   };
 
   const handleResetSimulation = () => {
+    console.log("Resetting simulation...");
     setIsSimulationStarted(false);
     setLifts([]);
     setPendingRequests([]);
     setFloorsCount(0);
     setLiftsCount(0);
+    setErrorMessage(null); // Reset error message on reset
   };
 
   const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
+    console.log(
+      `Lift request received for floor ${floorNumber} to go ${direction}.`
+    );
     const availableLift = findNearestAvailableLift(floorNumber);
+    console.log("Available Lift:", availableLift); // Log the available lift
+
     if (availableLift) {
       moveLift(availableLift, floorNumber);
+      console.log(`Moving Lift ${availableLift.id} to Floor ${floorNumber}`); // Log when the lift is moving
 
       // Disable the button that was pressed
       setDisabledButtons((prev) => ({
@@ -89,6 +105,9 @@ const App: React.FC = () => {
       }));
     } else {
       setPendingRequests((prev) => [...prev, floorNumber]);
+      console.log(
+        `No available lifts. Added floor ${floorNumber} to pending requests.`
+      );
     }
   };
 
@@ -97,7 +116,7 @@ const App: React.FC = () => {
     let minDistance = Infinity;
     for (const lift of lifts) {
       if (!lift.isMoving && !lift.doorsOpen) {
-        // Ensure the lift is not moving and doors are closed
+        // Exclude lifts that are moving or have open doors
         const distance = Math.abs(lift.currentFloor - floorNumber);
         if (distance < minDistance) {
           minDistance = distance;
@@ -105,6 +124,10 @@ const App: React.FC = () => {
         }
       }
     }
+    console.log(
+      `Nearest available lift for floor ${floorNumber}:`,
+      nearestLift
+    );
     return nearestLift;
   };
 
@@ -112,9 +135,12 @@ const App: React.FC = () => {
     const floorsToMove = Math.abs(lift.currentFloor - destinationFloor);
     const timePerFloor = 2000; // 2 seconds per floor
     const totalTime = floorsToMove * timePerFloor;
-    const destinationBottom = `${destinationFloor * floorHeight}px`; // Calculate the new `bottom` position
-  
+    const destinationBottom = `${destinationFloor * floorHeight}px`;
+
     // Move the lift to the destination
+    console.log(
+      `Moving lift ${lift.id} to destination floor ${destinationFloor} in ${totalTime} ms.`
+    );
     setLifts((prevLifts) =>
       prevLifts.map((l) =>
         l.id === lift.id
@@ -123,16 +149,19 @@ const App: React.FC = () => {
               isMoving: true,
               style: {
                 ...l.style,
-                bottom: destinationBottom, // Use the new bottom position
+                bottom: destinationBottom,
                 transition: `bottom ${totalTime}ms linear`,
               },
             }
           : l
       )
     );
-  
+
     // After the lift reaches the destination, open the doors
     setTimeout(() => {
+      console.log(
+        `Lift ${lift.id} has reached floor ${destinationFloor}. Opening doors.`
+      );
       setLifts((prevLifts) =>
         prevLifts.map((l) =>
           l.id === lift.id
@@ -140,35 +169,37 @@ const App: React.FC = () => {
                 ...l,
                 isMoving: false,
                 doorsOpen: true,
-                currentFloor: destinationFloor,
+                currentFloor: destinationFloor, // Correctly update currentFloor here
               }
             : l
         )
       );
-  
+
       // Close the doors after 2.5 seconds
       setTimeout(() => {
+        console.log(`Closing doors for lift ${lift.id}.`);
         setLifts((prevLifts) =>
           prevLifts.map((l) =>
             l.id === lift.id ? { ...l, doorsOpen: false } : l
           )
         );
-  
+
         // Re-enable the buttons after the lift reaches the floor
         setDisabledButtons((prev) => ({
           ...prev,
           [destinationFloor]: { up: false, down: false },
         }));
-  
+
         // Handle pending requests if any
         if (pendingRequests.length > 0) {
           const nextFloor = pendingRequests.shift()!;
+          console.log(`Moving to next pending request for floor ${nextFloor}.`);
           moveLift(lift, nextFloor);
         }
-      }, 2500); // Doors open for 2.5 seconds
-    }, totalTime); // Wait until the lift reaches its destination before opening doors
+      }, 2500);
+    }, totalTime);
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <header className="py-6">
@@ -187,6 +218,15 @@ const App: React.FC = () => {
           className="bg-white p-6 rounded shadow-md max-w-md"
         >
           <div className="mb-4">
+            <div
+              className={`text-red-600 border border-red-600 p-2 rounded mb-4 ${
+                errorMessage ? "" : "hidden"
+              }`}
+              role="alert" // Add role for accessibility
+              aria-live="assertive" // Add aria-live for dynamic updates
+            >
+              {errorMessage}
+            </div>
             <label htmlFor="floorsCount" className="block text-lg">
               Number of Floors (1-100):
             </label>
@@ -194,7 +234,11 @@ const App: React.FC = () => {
               type="number"
               id="floorsCount"
               value={floorsCount}
-              onChange={(e) => setFloorsCount(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                console.log("Updated floors count:", value);
+                setFloorsCount(value);
+              }}
               min="1"
               max="100"
               required
@@ -209,7 +253,11 @@ const App: React.FC = () => {
               type="number"
               id="liftsCount"
               value={liftsCount}
-              onChange={(e) => setLiftsCount(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                console.log("Updated lifts count:", value);
+                setLiftsCount(value);
+              }}
               min="1"
               max="10"
               required
@@ -253,6 +301,7 @@ const App: React.FC = () => {
                     id={lift.id}
                     liftStyle={lift.style}
                     doorsOpen={lift.doorsOpen}
+                    currentFloor={lift.currentFloor} // Pass the current floor of the lift
                   />
                 ))}
               </div>
