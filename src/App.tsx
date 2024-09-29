@@ -1,206 +1,314 @@
 import React, { useState, useEffect } from "react";
+import Floor from "./components/Floor";
+import Lift from "./components/Lift";
 
-type Lift = {
+type LiftType = {
   id: number;
   currentFloor: number;
   isMoving: boolean;
-  direction: "up" | "down" | null;
   doorsOpen: boolean;
+  style: React.CSSProperties;
 };
 
 const App: React.FC = () => {
-  const [floors, setFloors] = useState<number | null>(null);
-  const [lifts, setLifts] = useState<Lift[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [requests, setRequests] = useState<number[]>([]); // Stores floor requests
+  const [floorsCount, setFloorsCount] = useState<number>(0);
+  const [liftsCount, setLiftsCount] = useState<number>(0);
+  const [isSimulationStarted, setIsSimulationStarted] =
+    useState<boolean>(false);
+  const [lifts, setLifts] = useState<LiftType[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<number[]>([]);
+  const [disabledButtons, setDisabledButtons] = useState<
+    Record<number, { up: boolean; down: boolean }>
+  >({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // State for error message
+  const floorHeight = 120; // Adjusting height for better visibility
 
-  const initializeLifts = (numLifts: number) => {
-    const initialLifts = Array.from({ length: numLifts }, (_, index) => ({
-      id: index + 1,
-      currentFloor: 1,
-      isMoving: false,
-      direction: null,
-      doorsOpen: false,
-    }));
+  // Initialize disabled buttons state for each floor
+  useEffect(() => {
+    const initialDisabledState: Record<number, { up: boolean; down: boolean }> =
+      {};
+    for (let i = 0; i <= floorsCount; i++) {
+      initialDisabledState[i] = { up: false, down: false };
+    }
+    setDisabledButtons(initialDisabledState);
+    console.log("Initialized disabled buttons state:", initialDisabledState);
+  }, [floorsCount]);
+
+  useEffect(() => {
+    if (isSimulationStarted) {
+      initializeLifts(liftsCount);
+    }
+  }, [isSimulationStarted, liftsCount]);
+
+  const initializeLifts = (count: number) => {
+    const initialLifts: LiftType[] = [];
+    for (let i = 0; i < count; i++) {
+      initialLifts.push({
+        id: i + 1,
+        currentFloor: 0, // Set lifts to start at the ground floor
+        isMoving: false,
+        doorsOpen: false,
+        style: { bottom: "0px" }, // Ensure bottom is explicitly set to 0
+      });
+    }
     setLifts(initialLifts);
+    console.log("Initialized lifts:", initialLifts);
   };
 
-  const requestLift = (floor: number) => {
-    setRequests((prev) => [...prev, floor]); // Add floor request
-  };
+  const handleStartSimulation = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Starting simulation with:", { floorsCount, liftsCount });
 
-  const handleStartSimulation = () => {
     if (
-      !floors ||
-      floors < 1 ||
-      floors > 100 ||
-      lifts.length < 1 ||
-      lifts.length > 10
+      floorsCount <= 0 ||
+      floorsCount > 100 ||
+      liftsCount <= 0 ||
+      liftsCount > 10
     ) {
-      setError("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
+      setErrorMessage("Please enter valid values (Floors: 1-100, Lifts: 1-10)"); // Set error message
+      return;
+    }
+
+    setErrorMessage(null); // Clear any previous error messages
+    setIsSimulationStarted(true);
+    console.log("Simulation started.");
+  };
+
+  const handleResetSimulation = () => {
+    console.log("Resetting simulation...");
+    setIsSimulationStarted(false);
+    setLifts([]);
+    setPendingRequests([]);
+    setFloorsCount(0);
+    setLiftsCount(0);
+    setErrorMessage(null); // Reset error message on reset
+  };
+
+  const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
+    console.log(
+      `Lift request received for floor ${floorNumber} to go ${direction}.`
+    );
+    const availableLift = findNearestAvailableLift(floorNumber);
+    console.log("Available Lift:", availableLift); // Log the available lift
+
+    if (availableLift) {
+      moveLift(availableLift, floorNumber);
+      console.log(`Moving Lift ${availableLift.id} to Floor ${floorNumber}`); // Log when the lift is moving
+
+      // Disable the button that was pressed
+      setDisabledButtons((prev) => ({
+        ...prev,
+        [floorNumber]: {
+          ...prev[floorNumber],
+          [direction]: true,
+        },
+      }));
     } else {
-      setError(null);
+      setPendingRequests((prev) => [...prev, floorNumber]);
       console.log(
-        "Simulation started with",
-        lifts.length,
-        "lifts and",
-        floors,
-        "floors."
+        `No available lifts. Added floor ${floorNumber} to pending requests.`
       );
     }
   };
 
-  useEffect(() => {
-    if (requests.length > 0) {
-      handleLiftMovement();
-    }
-  }, [requests]);
-
-  const handleLiftMovement = () => {
-    const availableLift = findNearestLift(requests[0]);
-  
-    if (availableLift) {
-      const updatedLifts = lifts.map((lift) => {
-        if (lift.id === availableLift.id) {
-          lift.isMoving = true;
-          lift.direction = lift.currentFloor < requests[0] ? "up" : "down";
-  
-          // Simulate lift movement delay
-          setTimeout(() => {
-            const newLifts = [...lifts]; // Create a new copy of the lifts array for immutability
-            const targetLift = newLifts.find((l) => l.id === lift.id);
-            if (targetLift) {
-              targetLift.currentFloor = requests[0];
-              targetLift.isMoving = false;
-              targetLift.doorsOpen = true;
-              setLifts(newLifts); // Trigger re-render with updated state
-  
-              setTimeout(() => {
-                const closedLifts = [...lifts];
-                const liftToClose = closedLifts.find((l) => l.id === lift.id);
-                if (liftToClose) {
-                  liftToClose.doorsOpen = false;
-                  setLifts(closedLifts); // Trigger re-render with doors closed
-                  setRequests((prev) => prev.slice(1)); // Remove the handled request
-                }
-              }, 2500); // Door open/close delay
-            }
-          }, Math.abs(lift.currentFloor - requests[0]) * 2000); // Move 2s per floor
-        }
-        return lift;
-      });
-  
-      setLifts(updatedLifts); // Trigger a re-render after assigning the moving lift
-    }
-  };
-  
-  const findNearestLift = (requestedFloor: number): Lift | null => {
-    let nearestLift: Lift | null = null;
+  const findNearestAvailableLift = (floorNumber: number): LiftType | null => {
+    let nearestLift: LiftType | null = null;
     let minDistance = Infinity;
-
-    lifts.forEach((lift) => {
-      if (!lift.isMoving) {
-        const distance = Math.abs(lift.currentFloor - requestedFloor);
+    for (const lift of lifts) {
+      if (!lift.isMoving && !lift.doorsOpen) {
+        // Exclude lifts that are moving or have open doors
+        const distance = Math.abs(lift.currentFloor - floorNumber);
         if (distance < minDistance) {
           minDistance = distance;
           nearestLift = lift;
         }
       }
-    });
-
+    }
+    console.log(
+      `Nearest available lift for floor ${floorNumber}:`,
+      nearestLift
+    );
     return nearestLift;
   };
 
-  return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-4">Lift Simulation</h1>
+  const moveLift = (lift: LiftType, destinationFloor: number) => {
+    const floorsToMove = Math.abs(lift.currentFloor - destinationFloor);
+    const timePerFloor = 2000; // 2 seconds per floor
+    const totalTime = floorsToMove * timePerFloor;
+    const destinationBottom = `${destinationFloor * floorHeight}px`;
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-          <div>
-            <label
-              htmlFor="floors-input"
-              className="block text-gray-700 font-medium"
+    // Move the lift to the destination
+    console.log(
+      `Moving lift ${lift.id} to destination floor ${destinationFloor} in ${totalTime} ms.`
+    );
+    setLifts((prevLifts) =>
+      prevLifts.map((l) =>
+        l.id === lift.id
+          ? {
+              ...l,
+              isMoving: true,
+              style: {
+                ...l.style,
+                bottom: destinationBottom,
+                transition: `bottom ${totalTime}ms linear`,
+              },
+            }
+          : l
+      )
+    );
+
+    // After the lift reaches the destination, open the doors
+    setTimeout(() => {
+      console.log(
+        `Lift ${lift.id} has reached floor ${destinationFloor}. Opening doors.`
+      );
+      setLifts((prevLifts) =>
+        prevLifts.map((l) =>
+          l.id === lift.id
+            ? {
+                ...l,
+                isMoving: false,
+                doorsOpen: true,
+                currentFloor: destinationFloor, // Correctly update currentFloor here
+              }
+            : l
+        )
+      );
+
+      // Close the doors after 2.5 seconds
+      setTimeout(() => {
+        console.log(`Closing doors for lift ${lift.id}.`);
+        setLifts((prevLifts) =>
+          prevLifts.map((l) =>
+            l.id === lift.id ? { ...l, doorsOpen: false } : l
+          )
+        );
+
+        // Re-enable the buttons after the lift reaches the floor
+        setDisabledButtons((prev) => ({
+          ...prev,
+          [destinationFloor]: { up: false, down: false },
+        }));
+
+        // Handle pending requests if any
+        if (pendingRequests.length > 0) {
+          const nextFloor = pendingRequests.shift()!;
+          console.log(`Moving to next pending request for floor ${nextFloor}.`);
+          moveLift(lift, nextFloor);
+        }
+      }, 2500);
+    }, totalTime);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center bg-gray-100">
+      <header className="py-6">
+        <h1 className="text-3xl font-bold">Lift Simulation by Achintya</h1>
+        <button
+          className="bg-red-600 text-white py-2 px-4 rounded mt-4"
+          onClick={handleResetSimulation}
+          style={{ display: isSimulationStarted ? "block" : "none" }} // Show reset button only after starting simulation
+        >
+          Reset Simulation
+        </button>
+      </header>
+      {!isSimulationStarted ? (
+        <form
+          onSubmit={handleStartSimulation}
+          className="bg-white p-6 rounded shadow-md max-w-md"
+        >
+          <div className="mb-4">
+            <div
+              className={`text-red-600 border border-red-600 p-2 rounded mb-4 ${
+                errorMessage ? "" : "hidden"
+              }`}
+              role="alert" // Add role for accessibility
+              aria-live="assertive" // Add aria-live for dynamic updates
             >
+              {errorMessage}
+            </div>
+            <label htmlFor="floorsCount" className="block text-lg">
               Number of Floors (1-100):
             </label>
             <input
-              id="floors-input"
               type="number"
-              value={floors || ""}
-              onChange={(e) => setFloors(Number(e.target.value))}
+              id="floorsCount"
+              value={floorsCount}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                console.log("Updated floors count:", value);
+                setFloorsCount(value);
+              }}
               min="1"
               max="100"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+              className="w-full px-4 py-2 border rounded mt-2"
             />
           </div>
-
-          <div>
-            <label
-              htmlFor="lifts-input"
-              className="block text-gray-700 font-medium"
-            >
+          <div className="mb-4">
+            <label htmlFor="liftsCount" className="block text-lg">
               Number of Lifts (1-10):
             </label>
             <input
-              id="lifts-input"
               type="number"
-              onChange={(e) => initializeLifts(Number(e.target.value))}
+              id="liftsCount"
+              value={liftsCount}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                console.log("Updated lifts count:", value);
+                setLiftsCount(value);
+              }}
               min="1"
               max="10"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-200"
+              className="w-full px-4 py-2 border rounded mt-2"
             />
           </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-
           <button
-            onClick={handleStartSimulation}
-            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-300"
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-2 rounded mt-4"
           >
             Start Simulation
           </button>
         </form>
-
-        {/* Request Lift Buttons */}
-        <div className="mt-6">
-          {Array.from({ length: floors || 0 }, (_, index) => (
-            <button
-              key={index}
-              className="m-2 p-2 bg-blue-500 text-white rounded"
-              onClick={() => requestLift(index + 1)}
-            >
-              Request Lift at Floor {index + 1}
-            </button>
-          ))}
-        </div>
-
-        {/* Lift Status Display */}
-        <div className="mt-6">
-          {lifts.map((lift) => (
-            <div
-              key={lift.id}
-              className="mb-2 p-2 border border-gray-400"
-              data-testid={`lift-${lift.id}`}
-            >
-              <p data-testid={`lift-${lift.id}-floor`}>
-                Lift {lift.id} - Current Floor: {lift.currentFloor}
-              </p>
-              <p data-testid={`lift-${lift.id}-status`}>
-                Status: {lift.isMoving ? "Moving" : "Idle"}
-              </p>
-              <p data-testid={`lift-${lift.id}-direction`}>
-                Direction: {lift.direction || "None"}
-              </p>
-              <p data-testid={`lift-${lift.id}-doors`}>
-                Doors: {lift.doorsOpen ? "Open" : "Closed"}
-              </p>
+      ) : (
+        <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto">
+          <div className="relative flex-1 grid grid-cols-[1fr_5fr] gap-4">
+            {/* Floors */}
+            <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)]">
+              {Array.from({ length: floorsCount + 1 }, (_, index) => (
+                <Floor
+                  key={index}
+                  floorNumber={floorsCount - index}
+                  floorHeight={floorHeight}
+                  handleLiftRequest={handleLiftRequest}
+                  isTopFloor={floorsCount - index === floorsCount}
+                  isGroundFloor={floorsCount - index === 0}
+                  disabledUp={disabledButtons[floorsCount - index]?.up || false}
+                  disabledDown={
+                    disabledButtons[floorsCount - index]?.down || false
+                  }
+                />
+              ))}
             </div>
-          ))}
+
+            {/* Lifts */}
+            <div className="relative w-full max-w-screen-lg h-full mx-auto">
+              <div className="relative flex justify-around items-end h-full">
+                {lifts.map((lift) => (
+                  <Lift
+                    key={lift.id}
+                    id={lift.id}
+                    liftStyle={lift.style}
+                    doorsOpen={lift.doorsOpen}
+                    currentFloor={lift.currentFloor} // Pass the current floor of the lift
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
