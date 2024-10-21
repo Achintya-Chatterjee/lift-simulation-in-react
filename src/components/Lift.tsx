@@ -22,13 +22,13 @@ const Lift: React.FC<LiftProps> = ({
       <div className="relative w-full h-full">
         {/* Left Door */}
         <div
-          className={`absolute left-0 top-0 h-full w-1/2 bg-gray-500 transition-transform duration-2500 ease-in-out ${
+          className={`absolute left-0 top-0 h-full w-1/2 bg-gray-500 transition-transform duration-500 ease-in-out ${
             doorsOpen ? "scale-x-0" : "scale-x-100"
           } origin-left`}
         />
         {/* Right Door */}
         <div
-          className={`absolute right-0 top-0 h-full w-1/2 bg-gray-500 transition-transform duration-2500 ease-in-out ${
+          className={`absolute right-0 top-0 h-full w-1/2 bg-gray-500 transition-transform duration-500 ease-in-out ${
             doorsOpen ? "scale-x-0" : "scale-x-100"
           } origin-right`}
         />

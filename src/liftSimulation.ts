@@ -33,10 +33,10 @@ export const useLiftSimulation = (
 
   const moveLift = (lift: LiftType, destinationFloor: number) => {
     const floorsToMove = Math.abs(lift.currentFloor - destinationFloor);
-    const timePerFloor = 2000; // 2 seconds per floor
+    const timePerFloor = 2000;
     const totalTime = floorsToMove * timePerFloor;
 
-    const destinationBottom = `${destinationFloor * 120}px`; // Floor height defined as 120px
+    const destinationBottom = `${destinationFloor * 120}px`;
 
     setLifts((prevLifts) =>
       prevLifts.map((l) =>
@@ -54,7 +54,6 @@ export const useLiftSimulation = (
       )
     );
 
-    // After the lift reaches the destination, open the doors
     setTimeout(() => {
       setLifts((prevLifts) =>
         prevLifts.map((l) =>
@@ -69,7 +68,6 @@ export const useLiftSimulation = (
         )
       );
 
-      // Close doors after some time
       setTimeout(() => {
         setLifts((prevLifts) =>
           prevLifts.map((l) =>
@@ -77,17 +75,15 @@ export const useLiftSimulation = (
           )
         );
 
-        // Re-enable buttons
         setDisabledButtons((prev) => ({
           ...prev,
           [destinationFloor]: { up: false, down: false },
         }));
 
-        // Handle pending requests
         if (pendingRequests.length > 0) {
-          const nextFloor = pendingRequests[0]; // Use the first pending request
-          setPendingRequests((prev) => prev.slice(1)); // Remove the processed request
-          moveLift(lift, nextFloor); // Call moveLift for the next request
+          const nextFloor = pendingRequests[0];
+          setPendingRequests((prev) => prev.slice(1));
+          moveLift(lift, nextFloor);
         }
       }, 2500);
     }, totalTime);

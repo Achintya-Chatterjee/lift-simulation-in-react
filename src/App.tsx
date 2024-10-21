@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Floor from "./components/Floor";
 import Lift from "./components/Lift";
-import { useLiftSimulation, LiftType } from "./liftSimulation"; // Import the new lift logic
+import { useLiftSimulation, LiftType } from "./liftSimulation";
 
 const App: React.FC = () => {
   const [floorsCount, setFloorsCount] = useState<number>(0);
@@ -13,9 +13,8 @@ const App: React.FC = () => {
   const [disabledButtons, setDisabledButtons] = useState<
     Record<number, { up: boolean; down: boolean }>
   >({});
-  const [errorMessage, setErrorMessage] = useState<string | null>(null); // State for error message
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Initialize disabled buttons state for each floor
   useEffect(() => {
     const initialDisabledState: Record<number, { up: boolean; down: boolean }> =
       {};
@@ -46,9 +45,9 @@ const App: React.FC = () => {
       return;
     }
 
-    setErrorMessage(null); // Clear any previous error messages
+    setErrorMessage(null);
     setIsSimulationStarted(true);
-    // Initialize lifts when simulation starts
+
     const initializedLifts = initializeLifts(liftsCount);
     setLifts(initializedLifts);
   };
@@ -59,13 +58,13 @@ const App: React.FC = () => {
     setPendingRequests([]);
     setFloorsCount(0);
     setLiftsCount(0);
-    setErrorMessage(null); // Reset error message on reset
+    setErrorMessage(null);
   };
 
   const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
     const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
-      moveLift(availableLift, floorNumber); // Call moveLift for the available lift
+      moveLift(availableLift, floorNumber);
       setDisabledButtons((prev) => ({
         ...prev,
         [floorNumber]: {
@@ -149,7 +148,7 @@ const App: React.FC = () => {
                 <Floor
                   key={index}
                   floorNumber={floorsCount - index}
-                  floorHeight={120} // Pass the defined height
+                  floorHeight={120}
                   handleLiftRequest={handleLiftRequest}
                   isTopFloor={floorsCount - index === floorsCount}
                   isGroundFloor={floorsCount - index === 0}
@@ -187,10 +186,10 @@ const initializeLifts = (count: number): LiftType[] => {
   for (let i = 0; i < count; i++) {
     initialLifts.push({
       id: i + 1,
-      currentFloor: 0, // Set lifts to start at the ground floor
+      currentFloor: 0,
       isMoving: false,
       doorsOpen: false,
-      style: { bottom: "0px" }, // Ensure bottom is explicitly set to 0
+      style: { bottom: "0px" },
     });
   }
   return initialLifts;
