@@ -141,7 +141,7 @@ const App: React.FC = () => {
         </form>
       ) : (
         <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto">
-          <div className="relative flex-1 grid grid-cols-[1fr_5fr] gap-4">
+          <div className="relative">
             {/* Floors */}
             <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)]">
               {Array.from({ length: floorsCount + 1 }, (_, index) => (
@@ -160,9 +160,10 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            {/* Lifts */}
-            <div className="relative w-full max-w-screen-lg h-full mx-auto">
-              <div className="relative flex justify-around items-end h-full">
+            {/* Container for buttons and lifts */}
+            <div className="flex justify-end relative w-full max-w-screen-lg h-full mx-auto bottom-24 left-24">
+              {/* Lifts */}
+              <div className="flex justify-around items-end h-full mb-[200px] gap-2">
                 {lifts.map((lift) => (
                   <Lift
                     key={lift.id}
@@ -171,6 +172,20 @@ const App: React.FC = () => {
                     doorsOpen={lift.doorsOpen}
                     currentFloor={lift.currentFloor}
                   />
+                ))}
+              </div>
+
+              {/* Add your buttons here */}
+              <div className="flex flex-col items-end">
+                {/* Example Button Components */}
+                {Array.from({ length: floorsCount }, (_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleLiftRequest(floorsCount - index, "up")}
+                    disabled={disabledButtons[floorsCount - index]?.up || false}
+                  >
+                    {`Floor ${floorsCount - index} Up`}
+                  </button>
                 ))}
               </div>
             </div>
