@@ -34,7 +34,7 @@ const Floor: React.FC<FloorProps> = ({
             UP
           </button>
         )}
-        <p className="font-bold text-green-800">Floor-{floorNumber}</p>
+        <p className="font-bold text-green-800">Floor{floorNumber}</p>
         {!isGroundFloor && (
           <button
             onClick={() => handleLiftRequest(floorNumber, "down")}
