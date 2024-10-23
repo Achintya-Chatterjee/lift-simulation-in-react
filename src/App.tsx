@@ -161,7 +161,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Container for buttons and lifts */}
-            <div className="flex justify-end relative w-full max-w-screen-lg h-full mx-auto bottom-24 left-24">
+            <div className="flex justify-end relative w-full max-w-screen-lg h-full mx-auto bottom-24 left-0">
               {/* Lifts */}
               <div className="flex justify-around items-end h-full mb-[200px] gap-2">
                 {lifts.map((lift) => (
@@ -176,8 +176,7 @@ const App: React.FC = () => {
               </div>
 
               {/* Add your buttons here */}
-              <div className="flex flex-col items-end">
-                {/* Example Button Components */}
+              {/* <div className="flex flex-col items-end">
                 {Array.from({ length: floorsCount }, (_, index) => (
                   <button
                     key={index}
@@ -187,7 +186,7 @@ const App: React.FC = () => {
                     {`Floor ${floorsCount - index} Up`}
                   </button>
                 ))}
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
