@@ -10,25 +10,11 @@ const App: React.FC = () => {
     useState<boolean>(false);
   const [lifts, setLifts] = useState<LiftType[]>([]);
   const [pendingRequests, setPendingRequests] = useState<number[]>([]);
-  const [disabledButtons, setDisabledButtons] = useState<
-    Record<number, { up: boolean; down: boolean }>
-  >({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const initialDisabledState: Record<number, { up: boolean; down: boolean }> =
-      {};
-    for (let i = 0; i <= floorsCount; i++) {
-      initialDisabledState[i] = { up: false, down: false };
-    }
-    setDisabledButtons(initialDisabledState);
-  }, [floorsCount]);
-
   const { findNearestAvailableLift, moveLift } = useLiftSimulation(
     lifts,
     pendingRequests,
     setLifts,
-    setDisabledButtons,
     setPendingRequests
   );
 
@@ -62,16 +48,13 @@ const App: React.FC = () => {
   };
 
   const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
+    console.log("floor number", floorNumber);
+    if (direction){
+      console.log("button clicked", direction);
+    }
     const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
       moveLift(availableLift, floorNumber);
-      setDisabledButtons((prev) => ({
-        ...prev,
-        [floorNumber]: {
-          ...prev[floorNumber],
-          [direction]: true,
-        },
-      }));
     } else {
       setPendingRequests((prev) => [...prev, floorNumber]);
     }
@@ -152,10 +135,6 @@ const App: React.FC = () => {
                   handleLiftRequest={handleLiftRequest}
                   isTopFloor={floorsCount - index === floorsCount}
                   isGroundFloor={floorsCount - index === 0}
-                  disabledUp={disabledButtons[floorsCount - index]?.up || false}
-                  disabledDown={
-                    disabledButtons[floorsCount - index]?.down || false
-                  }
                 />
               ))}
             </div>
@@ -174,19 +153,6 @@ const App: React.FC = () => {
                   />
                 ))}
               </div>
-
-              {/* Add your buttons here */}
-              {/* <div className="flex flex-col items-end">
-                {Array.from({ length: floorsCount }, (_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleLiftRequest(floorsCount - index, "up")}
-                    disabled={disabledButtons[floorsCount - index]?.up || false}
-                  >
-                    {`Floor ${floorsCount - index} Up`}
-                  </button>
-                ))}
-              </div> */}
             </div>
           </div>
         </div>

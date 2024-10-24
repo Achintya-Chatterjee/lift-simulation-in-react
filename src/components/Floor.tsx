@@ -6,8 +6,6 @@ type FloorProps = {
   handleLiftRequest: (floorNumber: number, direction: "up" | "down") => void;
   isTopFloor: boolean;
   isGroundFloor: boolean;
-  disabledUp: boolean;
-  disabledDown: boolean;
 };
 
 const Floor: React.FC<FloorProps> = ({
@@ -16,8 +14,6 @@ const Floor: React.FC<FloorProps> = ({
   handleLiftRequest,
   isTopFloor,
   isGroundFloor,
-  disabledUp,
-  disabledDown,
 }) => {
   return (
     <div
@@ -29,7 +25,6 @@ const Floor: React.FC<FloorProps> = ({
           <button
             onClick={() => handleLiftRequest(floorNumber, "up")}
             className="bg-green-700 text-white font-bold py-2 px-4 rounded-full"
-            disabled={disabledUp}
           >
             UP
           </button>
@@ -39,7 +34,6 @@ const Floor: React.FC<FloorProps> = ({
           <button
             onClick={() => handleLiftRequest(floorNumber, "down")}
             className="bg-green-700 text-white font-bold py-2 px-4 rounded-full"
-            disabled={disabledDown}
           >
             DOWN
           </button>

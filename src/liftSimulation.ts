@@ -10,9 +10,9 @@ export const useLiftSimulation = (
   lifts: LiftType[],
   pendingRequests: number[],
   setLifts: React.Dispatch<React.SetStateAction<LiftType[]>>,
-  setDisabledButtons: React.Dispatch<
-    React.SetStateAction<Record<number, { up: boolean; down: boolean }>>
-  >,
+  // setDisabledButtons: React.Dispatch<
+  //   React.SetStateAction<Record<number, { up: boolean; down: boolean }>>
+  // >,
   setPendingRequests: React.Dispatch<React.SetStateAction<number[]>>
 ) => {
   const findNearestAvailableLift = (floorNumber: number): LiftType | null => {
@@ -75,10 +75,10 @@ export const useLiftSimulation = (
           )
         );
 
-        setDisabledButtons((prev) => ({
-          ...prev,
-          [destinationFloor]: { up: false, down: false },
-        }));
+        // setDisabledButtons((prev) => ({
+        //   ...prev,
+        //   [destinationFloor]: { up: false, down: false },
+        // }));
 
         if (pendingRequests.length > 0) {
           const nextFloor = pendingRequests[0];
