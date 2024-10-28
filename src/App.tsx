@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import Floor from "./components/Floor";
 import Lift from "./components/Lift";
 import { useLiftSimulation, LiftType } from "./liftSimulation";
-
 const App: React.FC = () => {
   const [floorsCount, setFloorsCount] = useState<number>(0);
   const [liftsCount, setLiftsCount] = useState<number>(0);
@@ -17,10 +16,8 @@ const App: React.FC = () => {
     setLifts,
     setPendingRequests
   );
-
   const handleStartSimulation = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (
       floorsCount <= 0 ||
       floorsCount > 100 ||
@@ -30,14 +27,11 @@ const App: React.FC = () => {
       setErrorMessage("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
       return;
     }
-
     setErrorMessage(null);
     setIsSimulationStarted(true);
-
     const initializedLifts = initializeLifts(liftsCount);
     setLifts(initializedLifts);
   };
-
   const handleResetSimulation = () => {
     setIsSimulationStarted(false);
     setLifts([]);
@@ -53,43 +47,15 @@ const App: React.FC = () => {
       console.log("button clicked", direction);
     }
 
-    // Find lifts already at the requested floor that are not moving and have their doors closed
-    const liftsAtRequestedFloor = lifts.filter(
-      (lift) =>
-        lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
+    // Limit lifts to two for a particular floor
+    const liftsEnRoute = lifts.filter(
+      (lift) => lift.currentFloor === floorNumber && lift.isMoving
     );
-
-    // If there are already two lifts at this floor, open their doors and return early
-    if (liftsAtRequestedFloor.length >= 2) {
-      console.log(
-        `Two lifts are already at floor ${floorNumber}. Opening doors.`
-      );
-      setLifts((prevLifts) =>
-        prevLifts.map((lift) =>
-          lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
-            ? { ...lift, doorsOpen: true }
-            : lift
-        )
-      );
+    if (liftsEnRoute.length >= 2) {
+      setPendingRequests((prev) => [...prev, floorNumber]);
       return;
     }
 
-    // If one lift is already at this floor, open its door and avoid calling another lift from a different floor
-    if (liftsAtRequestedFloor.length === 1) {
-      console.log(
-        `One lift is already at floor ${floorNumber}. Opening the door.`
-      );
-      setLifts((prevLifts) =>
-        prevLifts.map((lift) =>
-          lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
-            ? { ...lift, doorsOpen: true }
-            : lift
-        )
-      );
-      return;
-    }
-
-    // Find the nearest available lift if no lifts are already at this floor
     const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
       moveLift(availableLift, floorNumber);
@@ -97,7 +63,6 @@ const App: React.FC = () => {
       setPendingRequests((prev) => [...prev, floorNumber]);
     }
   };
-
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <header className="py-6">
@@ -198,7 +163,6 @@ const App: React.FC = () => {
     </div>
   );
 };
-
 const initializeLifts = (count: number): LiftType[] => {
   const initialLifts: LiftType[] = [];
   for (let i = 0; i < count; i++) {
@@ -213,5 +177,4 @@ const initializeLifts = (count: number): LiftType[] => {
   }
   return initialLifts;
 };
-
 export default App;
