@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Floor from "./components/Floor";
 import Lift from "./components/Lift";
 import { useLiftSimulation, LiftType } from "./liftSimulation";
@@ -49,9 +49,19 @@ const App: React.FC = () => {
 
   const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
     console.log("floor number", floorNumber);
-    if (direction){
+    if (direction) {
       console.log("button clicked", direction);
     }
+
+    // Limit lifts to two for a particular floor
+    const liftsEnRoute = lifts.filter(
+      (lift) => lift.currentFloor === floorNumber && lift.isMoving
+    );
+    if (liftsEnRoute.length >= 2) {
+      setPendingRequests((prev) => [...prev, floorNumber]);
+      return;
+    }
+
     const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
       moveLift(availableLift, floorNumber);
@@ -123,10 +133,10 @@ const App: React.FC = () => {
           </button>
         </form>
       ) : (
-        <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto">
+        <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto z-10">
           <div className="relative">
             {/* Floors */}
-            <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)]">
+            <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)] z-10">
               {Array.from({ length: floorsCount + 1 }, (_, index) => (
                 <Floor
                   key={index}
@@ -140,7 +150,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Container for buttons and lifts */}
-            <div className="flex justify-end relative w-full max-w-screen-lg h-full mx-auto bottom-24 left-0">
+            <div className="relative flex justify-end w-full max-w-screen-lg h-full mx-auto bottom-24 left-0 z-0">
               {/* Lifts */}
               <div className="flex justify-around items-end h-full mb-[200px] gap-2">
                 {lifts.map((lift) => (
@@ -169,6 +179,7 @@ const initializeLifts = (count: number): LiftType[] => {
       currentFloor: 0,
       isMoving: false,
       doorsOpen: false,
+      isAvailable: true,
       style: { bottom: "0px" },
     });
   }
