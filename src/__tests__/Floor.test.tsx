@@ -14,12 +14,10 @@ describe("Floor Component", () => {
         handleLiftRequest={handleLiftRequest}
         isTopFloor={false}
         isGroundFloor={false}
-        disabledUp={false}
-        disabledDown={false}
       />
     );
 
-    expect(screen.getByText(/Floor-1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Floor 1/i)).toBeInTheDocument();
     expect(screen.getByText(/UP/i)).toBeInTheDocument();
     expect(screen.getByText(/DOWN/i)).toBeInTheDocument();
   });
@@ -32,8 +30,6 @@ describe("Floor Component", () => {
         handleLiftRequest={handleLiftRequest}
         isTopFloor={false}
         isGroundFloor={false}
-        disabledUp={false}
-        disabledDown={false}
       />
     );
 
@@ -49,8 +45,6 @@ describe("Floor Component", () => {
         handleLiftRequest={handleLiftRequest}
         isTopFloor={false}
         isGroundFloor={false}
-        disabledUp={false}
-        disabledDown={false}
       />
     );
 
