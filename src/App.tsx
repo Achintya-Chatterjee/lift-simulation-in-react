@@ -53,15 +53,43 @@ const App: React.FC = () => {
       console.log("button clicked", direction);
     }
 
-    // Limit lifts to two for a particular floor
-    const liftsEnRoute = lifts.filter(
-      (lift) => lift.currentFloor === floorNumber && lift.isMoving
+    // Find lifts already at the requested floor that are not moving and have their doors closed
+    const liftsAtRequestedFloor = lifts.filter(
+      (lift) =>
+        lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
     );
-    if (liftsEnRoute.length >= 2) {
-      setPendingRequests((prev) => [...prev, floorNumber]);
+
+    // If there are already two lifts at this floor, open their doors and return early
+    if (liftsAtRequestedFloor.length >= 2) {
+      console.log(
+        `Two lifts are already at floor ${floorNumber}. Opening doors.`
+      );
+      setLifts((prevLifts) =>
+        prevLifts.map((lift) =>
+          lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
+            ? { ...lift, doorsOpen: true }
+            : lift
+        )
+      );
       return;
     }
 
+    // If one lift is already at this floor, open its door and avoid calling another lift from a different floor
+    if (liftsAtRequestedFloor.length === 1) {
+      console.log(
+        `One lift is already at floor ${floorNumber}. Opening the door.`
+      );
+      setLifts((prevLifts) =>
+        prevLifts.map((lift) =>
+          lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
+            ? { ...lift, doorsOpen: true }
+            : lift
+        )
+      );
+      return;
+    }
+
+    // Find the nearest available lift if no lifts are already at this floor
     const availableLift = findNearestAvailableLift(floorNumber);
     if (availableLift) {
       moveLift(availableLift, floorNumber);
