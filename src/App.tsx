@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import Floor from "./components/Floor";
 import Lift from "./components/Lift";
 import { useLiftSimulation, LiftType } from "./liftSimulation";
-
 const App: React.FC = () => {
   const [floorsCount, setFloorsCount] = useState<number>(0);
   const [liftsCount, setLiftsCount] = useState<number>(0);
@@ -17,10 +16,8 @@ const App: React.FC = () => {
     setLifts,
     setPendingRequests
   );
-
   const handleStartSimulation = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (
       floorsCount <= 0 ||
       floorsCount > 100 ||
@@ -30,14 +27,11 @@ const App: React.FC = () => {
       setErrorMessage("Please enter valid values (Floors: 1-100, Lifts: 1-10)");
       return;
     }
-
     setErrorMessage(null);
     setIsSimulationStarted(true);
-
     const initializedLifts = initializeLifts(liftsCount);
     setLifts(initializedLifts);
   };
-
   const handleResetSimulation = () => {
     setIsSimulationStarted(false);
     setLifts([]);
@@ -97,7 +91,6 @@ const App: React.FC = () => {
       setPendingRequests((prev) => [...prev, floorNumber]);
     }
   };
-
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <header className="py-6">
@@ -198,7 +191,6 @@ const App: React.FC = () => {
     </div>
   );
 };
-
 const initializeLifts = (count: number): LiftType[] => {
   const initialLifts: LiftType[] = [];
   for (let i = 0; i < count; i++) {
@@ -213,5 +205,4 @@ const initializeLifts = (count: number): LiftType[] => {
   }
   return initialLifts;
 };
-
 export default App;
