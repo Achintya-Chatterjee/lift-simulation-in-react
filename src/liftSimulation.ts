@@ -108,7 +108,17 @@ export const useLiftSimulation = (
     if (pendingRequests.length > 0) {
       const nextFloor = pendingRequests[0];
       setPendingRequests((prev) => prev.slice(1));
-      handleLiftRequest(nextFloor, "up");
+
+      const availableLifts = lifts.filter((lift) => lift.isAvailable && !lift.doorsOpen);
+      if (availableLifts.length === 0) {
+        setPendingRequests((prev) => [...prev, nextFloor]); // Re-add to pending if no lift is available
+        return;
+      }
+
+      const nearestLift = findNearestAvailableLift(nextFloor, availableLifts);
+      if (nearestLift) {
+        moveLift(nearestLift, nextFloor, "up");
+      }
     }
   };
 
