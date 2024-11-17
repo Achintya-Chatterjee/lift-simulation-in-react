@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import Floor from "./components/Floor";
 import Lift from "./components/Lift";
 import { useLiftSimulation, LiftType } from "./liftSimulation";
-
 const App: React.FC = () => {
   const [floorsCount, setFloorsCount] = useState<number>(0);
   const [liftsCount, setLiftsCount] = useState<number>(0);
@@ -28,7 +27,6 @@ const App: React.FC = () => {
     activeDownRequests,
     setActiveDownRequests
   );
-
   const handleStartSimulation = (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -45,7 +43,6 @@ const App: React.FC = () => {
     const initializedLifts = initializeLifts(liftsCount);
     setLifts(initializedLifts);
   };
-
   const handleResetSimulation = () => {
     setIsSimulationStarted(false);
     setLifts([]);
@@ -90,7 +87,6 @@ const App: React.FC = () => {
       moveLift(nearestLift, floorNumber, direction);
     }
   };
-
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <header className="py-6">
@@ -187,7 +183,6 @@ const App: React.FC = () => {
     </div>
   );
 };
-
 const initializeLifts = (count: number): LiftType[] => {
   const initialLifts: LiftType[] = [];
   for (let i = 0; i < count; i++) {
@@ -202,5 +197,4 @@ const initializeLifts = (count: number): LiftType[] => {
   }
   return initialLifts;
 };
-
 export default App;
