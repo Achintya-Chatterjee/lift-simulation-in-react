@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Floor from "./components/Floor";
 import Lift from "./components/Lift";
 import { useLiftSimulation, LiftType } from "./liftSimulation";
+
 const App: React.FC = () => {
   const [floorsCount, setFloorsCount] = useState<number>(0);
   const [liftsCount, setLiftsCount] = useState<number>(0);
@@ -9,13 +10,25 @@ const App: React.FC = () => {
     useState<boolean>(false);
   const [lifts, setLifts] = useState<LiftType[]>([]);
   const [pendingRequests, setPendingRequests] = useState<number[]>([]);
+  const [activeUpRequests, setActiveUpRequests] = useState<Set<number>>(
+    new Set()
+  );
+  const [activeDownRequests, setActiveDownRequests] = useState<Set<number>>(
+    new Set()
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const { findNearestAvailableLift, moveLift } = useLiftSimulation(
     lifts,
     pendingRequests,
     setLifts,
-    setPendingRequests
+    setPendingRequests,
+    activeUpRequests,
+    setActiveUpRequests,
+    activeDownRequests,
+    setActiveDownRequests
   );
+
   const handleStartSimulation = (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -32,37 +45,52 @@ const App: React.FC = () => {
     const initializedLifts = initializeLifts(liftsCount);
     setLifts(initializedLifts);
   };
+
   const handleResetSimulation = () => {
     setIsSimulationStarted(false);
     setLifts([]);
     setPendingRequests([]);
+    setActiveUpRequests(new Set());
+    setActiveDownRequests(new Set());
     setFloorsCount(0);
     setLiftsCount(0);
     setErrorMessage(null);
   };
 
   const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
-    console.log("floor number", floorNumber);
-    if (direction) {
-      console.log("button clicked", direction);
+    if (direction === "up" && activeUpRequests.has(floorNumber)) {
+      console.log(
+        `Up request for floor ${floorNumber} is already being served.`
+      );
+      return;
+    }
+    if (direction === "down" && activeDownRequests.has(floorNumber)) {
+      console.log(
+        `Down request for floor ${floorNumber} is already being served.`
+      );
+      return;
     }
 
-    // Limit lifts to two for a particular floor
-    const liftsEnRoute = lifts.filter(
-      (lift) => lift.currentFloor === floorNumber && lift.isMoving
+    const availableLifts = lifts.filter(
+      (lift) => lift.isAvailable && !lift.doorsOpen
     );
-    if (liftsEnRoute.length >= 2) {
+    if (availableLifts.length === 0) {
       setPendingRequests((prev) => [...prev, floorNumber]);
       return;
     }
 
-    const availableLift = findNearestAvailableLift(floorNumber);
-    if (availableLift) {
-      moveLift(availableLift, floorNumber);
-    } else {
-      setPendingRequests((prev) => [...prev, floorNumber]);
+    const nearestLift = findNearestAvailableLift(floorNumber, availableLifts);
+
+    if (nearestLift) {
+      if (direction === "up") {
+        setActiveUpRequests((prev) => new Set(prev).add(floorNumber));
+      } else if (direction === "down") {
+        setActiveDownRequests((prev) => new Set(prev).add(floorNumber));
+      }
+      moveLift(nearestLift, floorNumber, direction);
     }
   };
+
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-100">
       <header className="py-6">
@@ -128,7 +156,6 @@ const App: React.FC = () => {
       ) : (
         <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto z-10">
           <div className="relative">
-            {/* Floors */}
             <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)] z-10">
               {Array.from({ length: floorsCount + 1 }, (_, index) => (
                 <Floor
@@ -141,10 +168,7 @@ const App: React.FC = () => {
                 />
               ))}
             </div>
-
-            {/* Container for buttons and lifts */}
             <div className="relative flex justify-end w-full max-w-screen-lg h-full mx-auto bottom-24 left-0 z-0">
-              {/* Lifts */}
               <div className="flex justify-around items-end h-full mb-[200px] gap-2">
                 {lifts.map((lift) => (
                   <Lift
@@ -163,6 +187,7 @@ const App: React.FC = () => {
     </div>
   );
 };
+
 const initializeLifts = (count: number): LiftType[] => {
   const initialLifts: LiftType[] = [];
   for (let i = 0; i < count; i++) {
@@ -177,4 +202,5 @@ const initializeLifts = (count: number): LiftType[] => {
   }
   return initialLifts;
 };
+
 export default App;
