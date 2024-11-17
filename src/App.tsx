@@ -119,8 +119,8 @@ const App: React.FC = () => {
             <input
               type="number"
               id="floorsCount"
-              value={floorsCount}
-              onChange={(e) => setFloorsCount(Number(e.target.value))}
+              value={floorsCount === 0 ? "" : floorsCount}
+              onChange={(e) => setFloorsCount(Number(e.target.value) || 0)}
               min="1"
               max="100"
               required
@@ -134,8 +134,8 @@ const App: React.FC = () => {
             <input
               type="number"
               id="liftsCount"
-              value={liftsCount}
-              onChange={(e) => setLiftsCount(Number(e.target.value))}
+              value={liftsCount === 0 ? "" : liftsCount}
+              onChange={(e) => setLiftsCount(Number(e.target.value) || 0)}
               min="1"
               max="10"
               required
