@@ -9,12 +9,23 @@ const App: React.FC = () => {
     useState<boolean>(false);
   const [lifts, setLifts] = useState<LiftType[]>([]);
   const [pendingRequests, setPendingRequests] = useState<number[]>([]);
+  const [activeUpRequests, setActiveUpRequests] = useState<Set<number>>(
+    new Set()
+  );
+  const [activeDownRequests, setActiveDownRequests] = useState<Set<number>>(
+    new Set()
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const { findNearestAvailableLift, moveLift } = useLiftSimulation(
     lifts,
     pendingRequests,
     setLifts,
-    setPendingRequests
+    setPendingRequests,
+    activeUpRequests,
+    setActiveUpRequests,
+    activeDownRequests,
+    setActiveDownRequests
   );
   const handleStartSimulation = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,59 +47,44 @@ const App: React.FC = () => {
     setIsSimulationStarted(false);
     setLifts([]);
     setPendingRequests([]);
+    setActiveUpRequests(new Set());
+    setActiveDownRequests(new Set());
     setFloorsCount(0);
     setLiftsCount(0);
     setErrorMessage(null);
   };
 
   const handleLiftRequest = (floorNumber: number, direction: "up" | "down") => {
-    console.log("floor number", floorNumber);
-    if (direction) {
-      console.log("button clicked", direction);
+    if (direction === "up" && activeUpRequests.has(floorNumber)) {
+      console.log(
+        `Up request for floor ${floorNumber} is already being served.`
+      );
+      return;
+    }
+    if (direction === "down" && activeDownRequests.has(floorNumber)) {
+      console.log(
+        `Down request for floor ${floorNumber} is already being served.`
+      );
+      return;
     }
 
-    // Find lifts already at the requested floor that are not moving and have their doors closed
-    const liftsAtRequestedFloor = lifts.filter(
-      (lift) =>
-        lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
+    const availableLifts = lifts.filter(
+      (lift) => lift.isAvailable && !lift.doorsOpen
     );
-
-    // If there are already two lifts at this floor, open their doors and return early
-    if (liftsAtRequestedFloor.length >= 2) {
-      console.log(
-        `Two lifts are already at floor ${floorNumber}. Opening doors.`
-      );
-      setLifts((prevLifts) =>
-        prevLifts.map((lift) =>
-          lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
-            ? { ...lift, doorsOpen: true }
-            : lift
-        )
-      );
-      return;
-    }
-
-    // If one lift is already at this floor, open its door and avoid calling another lift from a different floor
-    if (liftsAtRequestedFloor.length === 1) {
-      console.log(
-        `One lift is already at floor ${floorNumber}. Opening the door.`
-      );
-      setLifts((prevLifts) =>
-        prevLifts.map((lift) =>
-          lift.currentFloor === floorNumber && !lift.isMoving && !lift.doorsOpen
-            ? { ...lift, doorsOpen: true }
-            : lift
-        )
-      );
-      return;
-    }
-
-    // Find the nearest available lift if no lifts are already at this floor
-    const availableLift = findNearestAvailableLift(floorNumber);
-    if (availableLift) {
-      moveLift(availableLift, floorNumber);
-    } else {
+    if (availableLifts.length === 0) {
       setPendingRequests((prev) => [...prev, floorNumber]);
+      return;
+    }
+
+    const nearestLift = findNearestAvailableLift(floorNumber, availableLifts);
+
+    if (nearestLift) {
+      if (direction === "up") {
+        setActiveUpRequests((prev) => new Set(prev).add(floorNumber));
+      } else if (direction === "down") {
+        setActiveDownRequests((prev) => new Set(prev).add(floorNumber));
+      }
+      moveLift(nearestLift, floorNumber, direction);
     }
   };
   return (
@@ -156,7 +152,6 @@ const App: React.FC = () => {
       ) : (
         <div className="relative w-full max-w-screen-lg h-auto flex flex-col mx-auto z-10">
           <div className="relative">
-            {/* Floors */}
             <div className="relative grid grid-rows-[repeat(${floorsCount},_1fr)] z-10">
               {Array.from({ length: floorsCount + 1 }, (_, index) => (
                 <Floor
@@ -169,10 +164,7 @@ const App: React.FC = () => {
                 />
               ))}
             </div>
-
-            {/* Container for buttons and lifts */}
             <div className="relative flex justify-end w-full max-w-screen-lg h-full mx-auto bottom-24 left-0 z-0">
-              {/* Lifts */}
               <div className="flex justify-around items-end h-full mb-[200px] gap-2">
                 {lifts.map((lift) => (
                   <Lift
